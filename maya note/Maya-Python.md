@@ -2,7 +2,7 @@
 
 
 
-typora-root-url: image.assets
+typora-root-url: ..\image.assets
 ---
 
 # 引
