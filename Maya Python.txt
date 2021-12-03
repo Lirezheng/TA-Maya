@@ -1,0 +1,2368 @@
+---
+
+
+
+typora-root-url: image.assets
+---
+
+# 引
+
+## 帮助文档支持
+
+
+
+### 标志所需对象类型
+
+调用如下命令：
+
+```python
+import maya.cmds;
+print(maya.cmds.help('polyCube'));
+
+#或使用快速帮助命令
+```
+
+
+
+得到说明：
+![image-20211104141525188](image-20211104141525188.png)
+
+对象的参数类型我们发现有非常规的如“Length”.我们可以进入官网查询：
+
+![image-20211104145744706](image-20211104145744706.png)
+
+观察他的默认值为1.0，显然我们输入的应该是个数字。
+
+
+
+
+
+### 返回值
+
+![image-20211104150109895](image-20211104150109895.png)
+
+返回的是对象名还有节点名，如下命令
+
+```
+import maya.cmds;
+name = maya.cmds.polyCube(n='myCube');
+print(name);
+```
+
+![image-20211104150208341](image-20211104150208341.png)
+
+
+
+### 标志信息：
+
+![image-20211104150704107](image-20211104150704107.png)
+
+可以看到Argument types给定了参数类型的范例，Properties指定了标志与命令模式的兼容许可。
+
+
+
+## Maya命令模式
+
+------
+
+创建模式：允许在场景中创建新对象和指定相关的参数。
+
+编辑模式：编译已创建的内容。这通常需要设置edit标志为True。编辑模式和查询模式中的语法传递的第一个参数是**指定节点的名称**。
+
+查询模式：允许用户请求获得已创建的内容的信息。这通常需要设置query标志为True。在查询模式下，参数只传递值True。
+
+示例代码：
+
+```python
+import maya.cmds;
+maya.cmds.polyCube(n='myCube');#创建模式
+
+maya.cmds.polyCube('myCube',edit=True,width = 10);#编辑模式
+
+maya.cmds.polyCube('myCube',query=True,width=True);#查询模式
+```
+
+输出结果：
+
+![image-20211104145311375](image-20211104145311375.png)
+
+
+
+
+
+## 查询Maya支持的命令版本
+
+------
+
+```python
+import sys;
+print(sys.version);
+```
+
+可以看到2022版本使用的是3.7.7。
+
+![image-20211104151300606](image-20211104151300606.png)
+
+
+
+
+
+
+
+
+
+
+
+# Python基本语法与特性
+
+## 变量和数据
+
+- python中创建变量和重新赋值时使用赋值运算符（=）。
+
+- python不能在未定义的情况下声明变量。
+
+- python中的变量是强类型的，变量可以反复更改分配给他的值（甚至直接分配其他的类型值）。
+
+- 混合使用不同变量时，需要重写为预期的类型。
+
+  
+
+常用的重写变量类型函数
+
+|           |                      |                  |      |
+| :-------- | :------------------- | ---------------- | ---- |
+| float()   | 转换为小数           |                  |      |
+| int()     | 转换为整数           | 有小数会向下取整 |      |
+| str()     | 转为字符串           |                  |      |
+| unicode() | 转为指定编码的字符串 |                  |      |
+| type()    | 查看变量的类型。     |                  |      |
+
+## 
+
+关键字查询：
+
+```python
+import keyword;
+for kw in keyword.kwlist:print(kw);
+```
+
+
+
+## 数据模型
+
+变量是指向数据的名称。所有数据都为对象。也就是是说，变量是对象的别名（C++中的引用）。我们对变量进行赋值，实际上是更改了变量的标识符，而对象的值实际上不会发生什么（引用次数不为0的前提）。
+
+一个**数据对象**有：
+
+- 描述地址的标识符。
+- 对象的值。
+- 对象的类型。
+
+引用计数，是python管理内存的机制，如果没有变量名指向某个数据对象，数据对象会被回收。变量包含相同的项（非直接赋值变量），本质具有不同的标识符。
+
+内置函数del(),可以删除某个变量名。
+
+None类型，一种不分配内存情况下初始化名称的方法。
+
+
+
+## Maya命令与变量交互
+
+从前面的的帮助文档查询中，我们知道一些命令的返回值是有关Maya中节点对象名的列表，而用这些列表中的值我们可以用变量保存起来，方便后续的交互操作。
+
+范例：
+
+```
+import maya.cmds;
+arr = maya.cmds.polyCube();
+Cube = arr[1];
+
+#查询模式
+height = maya.cmds.polyCube(
+    Cube,q= True,h = True);
+
+#编辑模式
+maya.cmds.polyCube(
+    Cube,e = True, h = 2*height
+);
+```
+
+
+
+我们应当要使用变量保存命令的结果，而不应该用具体的属性状态作为命令的输入。
+
+范例：
+
+```
+import maya.cmds; 
+
+name1 = maya.cmds.polyCube(n= 'head');
+name2 = maya.cmds.polyCube(n='head');
+
+maya.cmds.polyCube(name1[0],e=True,h = 3);
+maya.cmds.polyCube(name2[1],e=True,h = 5);
+
+#如果在编辑模式下输入head这一具体的属性状态，由于内部自动的命名冲突处理，将会发生错误。
+```
+
+
+
+## getAttr和setAttr
+
+不是所有节点类型都有匹配的命令函数，我们可以使用通用命令获取和设置属性值，这种方法只需要知道节点有哪些属性值便可获取。
+
+复合属性，一些属性可能包含多个值，而值的类型不确定，在专为某个节点设计的命令中，可以直接设置复合类型的值。但在使用setAttr时，需要按顺序传入指定值，使得命令通过属性名称进行查找。
+
+范例：
+
+```
+#getAttr用法
+import maya.cmds; 
+loc = maya.cmds.polyCube();
+
+#loc = maya.cmds.polyCube()[0];  或者直接在函数结果后直接获取指定值
+
+w= maya.cmds.getAttr(loc[1]+'.width');
+w *=2;
+maya.cmds.setAttr(loc[1]+'.width',w);
+
+
+#若该属性为列表[a,b,c]
+maya.cmds.setAttr(loc+'.属性名'，1，1，1)
+```
+
+
+
+## connectAttr和disconnectAttr
+
+Maya场景中转换数据的机制是连接属性，如之前提到的超图HG，将一个输出作为另一个节点的输入。而本节的两个命令允许以另一种方法连接。
+
+属性能连接，要求必须要类型相同。当两个不同类型属性连接时，Maya会执行内置转换。
+
+范例：
+
+```python
+import maya.cmds; 
+sphere = maya.cmds.polySphere()[0];
+cube = maya.cmds.polyCube()[0];
+
+#连接
+maya.cmds.connectAttr(cube + '.ry',sphere +'.ty');
+maya.cmds.select(cube);
+#断开连接
+maya.cmds.disconnectAttr(cube + '.ry',sphere +'.ty');
+```
+
+
+
+## 数据类型与运算符
+
+python中有如下数字类型：
+
+| 数字类型 | 表示       | 访问                         |
+| -------- | ---------- | ---------------------------- |
+| 整数     | 5,-5       |                              |
+| 长整数   | 5L或5I表示 |                              |
+| 浮点数   | 5.0        |                              |
+| 复数     | -5+2j      | 变量名.real/imag访问实和虚部 |
+|          |            |                              |
+
+基本数值运算符（部分）
+
+| 运算符      | 说明             |      |
+| ----------- | ---------------- | ---- |
+| x/y         | 遵循四舍五入原则 |      |
+| x//y        | x和y整除的商     |      |
+| x%y         | 求余             |      |
+| divmod(x,y) | (x//y,x%y)的元组 |      |
+| pow(x,y)    |                  |      |
+| x**y        | 幂次方           |      |
+
+
+
+布尔运算和位运算
+
+| 运算    |      |      |
+| ------- | ---- | ---- |
+| x or y  | x\|y |      |
+| x and y | x&y  |      |
+| not x   | x^y  |      |
+
+
+
+## 序列类型
+
+序列类型包括：
+
+- 字符串
+- 列表
+- 元组
+
+
+
+用于序列类型的运算符（这里只列几个）
+
+| 用于判断条件的（返回布尔值） | 序列切片                         | 切片操作额外说明                                             |
+| ---------------------------- | -------------------------------- | ------------------------------------------------------------ |
+| x in s                       | s[i:j]                           | 若不写i，默认为0;若不写j，则默认为len(s)，注意切片后不包含j索引。 |
+| x not in s                   | s[i:j:k]                         | k为步长                                                      |
+|                              |                                  |                                                              |
+| 其他                         |                                  |                                                              |
+| s.index(x)                   | 返回x索引                        |                                                              |
+| s.count(x)                   | 计数s中x出现次数                 |                                                              |
+| +                            | 串联，合成具有相同类型的序列类型 |                                                              |
+
+注意：序列类型可以使用索引运算符设置列表的各个值，但是字符串或元组不行，因为他们是不可变的。
+
+更多：https://www.runoob.com/python/python-operators.html
+
+
+
+负索引功能
+
+负索引是最后一个元素后的索引。我们最好不要使用他。骚操作：
+
+```
+nums = (0,1,2,3)
+nums[::-1]  #反转序列
+```
+
+
+
+## 字符串
+
+python允许为字符串添加特殊的字符前缀，用于创建原始字符串和Unicode字符串。
+
+转义序列和多行字符串
+
+```python
+#重点：使用反斜杠（\）在ASCII字符前声明后面某个字符是特殊的
+#注意：字符串外若是'',且有用'的需求，那么字符串内的'就要声明特殊。”“同理。
+#②三重引号可以跨多行，且回车符也会被记录；在行末使用反斜杠可以跨行，但是不会记录回车符。
+
+var = ' I \'m Chinese!'
+
+#  \u Unicode字符
+#  \n 后续字符换到新行
+#  \t 制表符
+#  \' or \" 定义同一类型
+
+```
+
+原始字符串
+
+若直接输入原始路径字符串，通常会包含反斜杠，通过用前缀r或R声明该字符串值为原始字符串。
+
+```python
+#下列两个是相同的结果
+path = 'C:\\Users\\mystr'
+path = r'C:\Users\mystr'
+```
+
+
+
+Unicode字符串
+
+在值前面添加前缀u或U创建Unicode字符串，Maya中会将对象名称用Unicode字符返回。
+
+```
+var = u'帅'
+```
+
+字符串方法：
+
+https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str
+
+
+
+格式化字符串
+
+为了使一些对象转换为符合习惯的阅读字符，使用格式化操作简化这些对象。
+
+![image-20211106013918941](image-20211106013918941.png)
+
+用法范例：
+
+```
+# .1表示保留1位小数。
+age = 18.55
+print(' I am %.1f  years old '%age) #如果存在多个格式化，可以使用 %( 后输入多个变量。
+```
+
+输出
+
+![image-20211106014411248](image-20211106014411248.png)
+
+
+
+
+
+
+
+
+
+
+
+## 字典
+
+- 哈希表——含有键值对的数据结构类型，实现字典这一容器类型。
+- 字典中的键是可哈希的，每个键只能出现一次，对应也只有一个值。
+- 字典与字典关系中，字典只能作为另一个字典特定键的值。
+- 字典是无序的，字典是可变的。
+
+创建字典
+
+```python
+#width是键，2是对应值。
+#键不可改，值随便改,键不需要是同一类型。
+myAttributes = {'width' : 2 , 'height' : 3} 
+
+```
+
+字典运算符
+
+![image-20211106015733451](image-20211106015733451.png)
+
+字典虽然无序，但是可以通过执行方括号运算符，提供一个可哈希的对象（该值不是索引！）用来找对应的值。
+
+```python
+myAttributes = {'width' : 2 , 'height' : 3} 
+print(myAttributes['width']) #输出为2
+
+
+print(myAttributes['axis']) #试图访问不存在的键，返回KeyError错误并终止程序。
+
+#使用setdefault()方法来避免此情况。
+#查'axis'键，如果有返回他的值，若没有默认返回None，下面代码我们自定义了返回值。
+print(myAttributes.setdefault('axis','错误的') )
+```
+
+实践字典
+
+Maya中一些命令会将循环顺序如xyz返回为字符串，但是用getAttr对某个对象的属性取值时，返回的又是一个整数。在Maya里，循环顺序是枚举类型，我们可以使用两个字典来映射循环顺序。
+
+范例：
+
+```python
+import maya.cmds
+loc = maya.cmds.spaceLocator()[0]
+print(cmds.getAttr('%s.rotateOrder'%loc))  #此时print结果为0，获得的循环顺序是整数而非字符串，我们可以使用字典映射的方法，通过setAttr自行设置对象的循环顺序
+
+#这里我假设zxy键有对应字典值的整数
+maya.cmds.setAttr(
+	'%s.rotateOrder'%loc,
+    dictmapping['zxy']
+)
+```
+
+
+
+
+
+字典更多信息：
+
+https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
+
+
+
+
+
+
+
+## 函数
+
+函数声明中使用*运算符，他将告诉解释器所有传递到该函数的参数包装到**一个元组**中，并将元组传递给函数。
+
+函数声明中使用**运算符，可用于扩展一个字典。
+
+
+
+返回值：python中，传入参数为可变对象时，才能真正修改对象的值；而如果是不可变对象，其值无法改变也因此对他进行函数调用无影响。使用return返回获得处理后的结果。
+
+
+
+
+
+range()函数，最多有三个参数，返回一个列表，而列表又可以进行切片，十分适用于for循环。
+
+
+
+条件分支，python里的关键字是if,elif,else,后接' : '表示作用域。
+
+条件分支中，值判断返回布尔值为false的类型：0, None, [], 和''。
+
+条件的三元运算符，result_true if 条件 result_false.
+
+使用字典可以模拟switch,或者使用elif关键字.
+
+循环分支内的关键字,continue, break与C语言一致.
+
+
+
+列表解析(list comprehension, python语法糖)
+
+​	当for中套用分支时,可以使用列表解析简化代码,减少行数.
+
+​	expression_or_element for element in list if condition.
+
+while语句, 用于监视其他对象时很有用, 其他用法与C类似.
+
+
+
+## Maya命令
+
+列出和选择节点
+
+maya.cmds.ls();
+maya.cmds.ls(type=对象类型);
+返回值:全部或指定对象类型的节点名称。
+
+可选通配符(*)用于存储名称或模式匹配的对象。
+maya.cmds.ls(type='部分名*');
+
+select命令，填充当前的全局选择列表。当然，他也可以用通配符。
+maya.cmds.select('front*');
+全局选择列表中增加以front为开头的节点。
+
+使用ls命令，令sl/selection_list为True可以返回当前的全局选择列表。
+maya.cmds.ls(sl=True);
+
+
+
+
+
+file命令
+
+maya中file用于处理Maya场景文件。基本使用范例
+
+```
+#下列命令将打开一个新场景，并跳过保存更改的对话框
+maya.cmds.file(new=True,force=True) 
+
+#下列命令，使用rename标志参数必须单独调用,该标志用于设置文件名称
+maya.cmds.file(rename = )
+
+#其他标志还有open，配合os可以打开某个场景文件
+```
+
+添加属性命令
+
+```
+maya.cmds.addAttr(
+	节点名，
+	attributeType/dataType = '',
+	shortName = '',
+	longName = ''
+)
+
+#设置属性
+maya.cmds.setAttr(
+	节点属性，
+	属性值，
+	type = ''
+)
+```
+
+
+
+
+
+骨架：
+
+```python
+import maya.cmds; 
+import os;
+
+#该函数用于查询场景中所有file节点纹理
+def process_all_textures(out_dir = os.getnev('HOME')):
+    
+    
+    texture_nodes = []
+    processed_textures = []
+    error_textures = []
+    skipped_textures = []
+
+
+#该条件判断场景中是否有纹理
+if not texture_nodes:
+    maya.cmds.warning('No textures found,exiting')
+    return (
+        processed_textures,
+        error_textures,
+        skipped_textures)
+    
+#该迭代首先用于检测节点是否有效，如果有效，那么将检测节点后缀，
+#根据命名规则对每个节点进行处理，并根据处理结果进行processed/error分类
+#分类后根据状态值，输出处理结果日志，并将所有处理失败或没处理的纹理进行skipped分类
+for name in texture_nodes:
+    if is_vaild_texture(name):
+        print('Processing texture %s'%name)
+        as_type = None
+        status = False
+        texture = None
+        if '_diff' in name:
+            status,texture = process_diffuse(
+                name,outdir)
+            if status:
+                processed_textures.append(texture)
+                as_type = 'diffuse'
+            else:
+                error_textures.append(texture)
+        
+        elif '_spec' in name:
+             status,texture = process_spec(
+                name,outdir)
+            if status:
+                processed_textures.append(texture)
+                as_type = 'specular'
+            else:
+                error_textures.append(texture)
+        
+        elif '_bump' in name:
+             status,texture = process_bump(
+                name,outdir)
+            if status:
+                processed_textures.append(texture)
+                as_type = 'bump'
+            else:
+                error_textures.append(texture)
+        
+        if status:
+            print(
+                'Processed %s as a %s texture'%texture,as_type)
+        
+        else print(
+                'Failed to process %s'%name）
+                else:
+                    print(
+                        '%s is not a vaild texture ,skipping.'%name
+                        skipped_textures.append(name)
+     return(
+         processed_textures,error_textures,skipped_textures)
+```
+
+is_valid_texture函数
+
+```python
+
+#该函数用于验证是否有预定义的字符串
+def is_vaild_texture(file_node):
+    
+    #通过outColor查询节点与着色器的连接
+    shaders = maya.cmds.listConnections(
+    	'%s.outColor'%file_node,destination = True)
+    
+    if not shaders : return False
+    for shader in shaders:
+        
+		#找到节点，进一步搜索与网格的连接
+        groups = maya.cmds.listConnections(
+        '%s.outColor'%shader)
+        if not groups: return False
+        for group in groups:
+            meshes = maya.cmds.listConnections(
+            group,type = 'mesh')
+        if meshes:
+            if '_diff' in file_node:
+				return True;
+            if '_spec' in file_node:
+                return True;
+            if '_bump' in file_node:
+                return True;
+     return False
+```
+
+使用ls命令查询所有的节点
+
+```
+texture_nodes = maya.cmds.ls(type = 'file')
+
+#联合is_vaild函数将符合条件的使用列表存储
+texture_nodes = [node for node in maya.cmds.ls(type = 'file') if is_vaild_texture(node)]
+```
+
+process_diff()功能编写
+
+```python
+import maya.mel
+
+def process_diff(file_node,out_dir):
+    
+```
+
+
+
+# 模块
+
+## 什么是模块？
+
+- 模块简单地说，就是以.py为扩展名的文件。首次导入一个模块时，会动态生成一个对应的.pyc文件，这时该模块就是已编译的了。
+- 已编译模块由字节码组成，这样使Python解释器更有效地执行任务。Maya中Python模块有很多就是字节码形式的。
+
+## 模块与范围
+
+- 使用模块，我们需要注意模块中的对象存储的范围。
+- Python内置函数globals()/locals()可以查看当前的全局和局部范围中存在的对象。
+
+```
+def localexample():
+    var = 1;
+    print(locals());
+print(locals());
+localexample();
+
+{'__name__': '__main__', '__doc__': None, '__package__': None, '__loader__': <class '_。。。}
+{'var': 1}
+```
+
+## 模块封装与属性
+
+- 每个模块有自己的全局符号表，内置函数可以访问该表。
+- 当导入模块时，会将模块的符号表添加到当前的全局符号表中，但是只能通过模块名访问具体属性。
+- 导入模块后，外部可以将一个模块内的属性/函数进行修改，但是如果该模块的属性同时被其他模块使用，那我们就要十分小心。
+
+## ____main____模块
+
+Maya脚本编辑器在__main__模块中创建数据。模块默认属性有：__ name __ ,他是模块名。main模块是根模块，其他模块都是它的分支， 但是脚本不能是main模块，因为maya就是main模块。
+
+作为shelf按钮执行的脚本都在main模块中执行。
+
+https://www.python.org/dev/peps/pep-0299/
+
+## 自建模块与help()
+
+模块介绍中说到，创建一个新模块，只要创建一个后缀为.py的脚本即可。
+
+```python
+'''This module is aimed to create a spike'''
+import maya.cmds
+
+def addSpikes(obj):
+    """This function adds spikes to a polygon object."""
+    try: polycount = maya.cmds.polyEvaluate(obj, face=True)
+    except: raise
+    for i in range(0, polycount):
+        face = '%s.f[%s]'%(obj, i)
+        maya.cmds.polyExtrudeFacet(face, ltz=1, ch=0)
+        maya.cmds.polyExtrudeFacet(face, ltz=1, ch=0, ls=[.1,.1,.1])
+    maya.cmds.polySoftEdge(obj, a=180, ch=0)
+    maya.cmds.select(obj)
+
+print('module name: %s'%__name__)
+print('globals:')
+for k in list(globals().keys()): print('\t%s'%k)
+addSpikes(maya.cmds.polyPrimitive(ch=0)[0])
+
+```
+
+在另一个文本中调用该模块可以获得如下信息（部分）
+
+![image-20211111190557753](image-20211111190557753.png)
+
+具有下划线的属性部分介绍：
+
+- name:模块名称。
+- builtins:该属性指向一个模块，模块包含python所有对象（变量、函数）。
+- file:该属性是字符串，存储的是模块的路径。
+- package:该属性存储包含模块的包名。
+- doc:模块的第一条注释，模块内每个函数的第一条注释，使用help()，能详细知道模块功能(编写者提供)。
+
+使用python内置的help函数，可以获取相关信息，如下。
+
+![image-20211112105631011](image-20211112105631011.png)
+
+## 模块与包
+
+Python允许将模块组织到包这一特殊结构。包是一个含有"\__init__.py"文件的文件夹。
+
+"\__init__.py"文件中不需要包含实际代码，只需要在其中import要包含在包中的模块。
+
+包相较模块的优势：
+
+- 模块与包、包与包的嵌套从而避免命名冲突。
+- 包本身视为一个模块，只需将包的具体位置加入到Python搜索路径，而无需将包含的所有模块位置显式添加到搜索路径。
+
+有时模块名与内置的模块名命名冲突，这时我们只需要提供包中包含的模块名称。
+
+
+
+## 模块导入
+
+当我们导入模块时，解释器会帮我们创建一个"\_\_pycache\_\_"的文件夹，内有".pyc"后缀的文件，这就是已经编译好的字节码，导入的后续模块到会引用该段字节码。
+
+当导入模块后，对模块进行的修改不会立即生效，需要使用reload()函数重新分析字节码。reload()注意：
+
+- 在一个模块中调用，不会影响模块在其他命名空间中的实例（Python内存管理使）。
+- 不会自动加载所有子包。
+
+## 命名与约定
+
+- 导入包或模块，使用as取别名。
+- 如无名称冲突，可使用from导入模块中的属性/函数。
+- 下划线为前缀通常表明他们是内置的符号。这些属性不会被导入到全局符号表。
+
+范例：
+
+```python
+import math as m
+from math import pi
+
+```
+
+
+
+## Maya路径配置
+
+导入模块时，Python会搜索指定的所有路径，查看模块是否位于其中或包内。
+
+### sys.path
+
+sys模块中的path属性包含所有路径。
+
+```python
+import sys
+for p in sys.path:print(p)
+```
+
+输出(部分)如下:
+
+![image-20211112115335920](image-20211112115335920.png)
+
+前面几个是安装maya和python的路径。
+
+### 临时添加路径
+
+```python
+import os,sys
+home = os.getenv('HOME') # C:/Users/pc/Documents
+user = os.getenv('USER') # pc
+sys.path.append(
+    os.path.join(
+        home[:home.find(user)],
+        user,'Desktop'
+    )
+)
+```
+
+该种方法添加路径仅在Maya关闭前有效。
+
+
+
+### userSetup脚本
+
+就是将**临时添加路径的方法**结合Maya**启动时加载userStepup脚本**的特征，达到配置python搜索路径的目的。具体操作是：在Maya加载python的路径下添加一个名为userSetup.py的脚本，再将临时添加路径的代码复制到该脚本中。
+
+userSetup脚本不像普通模块一样封装，而是使用内置的execfile()函数在main模块中执行。Maya里模块maya.utils有函数executeDeferred()可以包装模块的导入。
+
+### sitecustomize模块
+
+Python内置特性支持sitecustomize模块，该模块会在Python会话时始终执行。
+
+为什么使用sitecustomize模块？
+
+- 因为该模块可以方便美术人员，能将用户的路径配置指向**网络目录**等。
+
+sitecustomize模块工作方式？
+
+- 该模块会在Maya目录添加到sys.path**之前**被导入。
+- 该模块需要放在site-packages中，或者在任意搜索路径的目录中。
+- 该模块添加的路径应在Maya初始化前生效（输出sys.path时为首路径）。
+- 该模块中不能发出Maya命令，因为他作用于Maya初始化前。
+- 该模块不同于userSetup，而是普通模块的作用，其数据会被封装。
+
+sitecustomize模块缺点？
+
+- 若需要更新模块，还要找到模块中指定的路劲，十分不方便。
+
+### 设置PYTHONPATH环境变量
+
+同sitecustomize模块，设置环境变量也是在Maya初始化前。设置环境变量，可以让Maya初始化前，搜索路径就包含添加的目录了。
+
+在目录C:\Users\pc\Documents\maya\2022下找到Maya.nex文件，该文件默认为空。文件中可以指定环境变量和值。这里我们示范将桌面添加到搜索路径中。
+
+```
+PYTHONPATH = C:\Users\pc\Desktop
+如果需要添加多个目录，如下win用分号，其他用冒号来分隔。
+PYTHONPATH = C:\Users\pc\Desktop;otherpath
+
+```
+
+该方式简单可靠，影响小。
+
+### 系统级环境配置
+
+为什么使用系统级环境配置？
+
+- 操作系统可以有多个自定义的环境变量供所有应用程序共享，例如Maya，MotionBuilder等会使用一些共享库，我们可以指定多个系统路径让他们都在里面找，因此避免向每个应用部署路径模块。
+- 与sitecustomize模块结合，可以部署搜索路径的构造顺序，对每个应用程序进行特定化。
+- 轻松更新团队的工具集。
+
+
+
+在高级系统设置-》高级-环境变量-》新建变量名为PYTHONPATH选定路径。
+
+
+
+## 使用Python IDE
+
+
+
+外部解释器如何连接Maya？
+
+- userSetup脚本中调用commandPort命令，监听来自外部端口的输入，解释器向该端口发送命令。
+
+https://www.pianshen.com/article/1451396838/
+
+https://jingyan.baidu.com/article/86f4a73e2249eb77d7526909.html
+
+## OS模块
+
+Python中的OS模块提供了与操作系统进行交互的功能。操作系统属于Python的标准实用程序模块。该模块提供了使用依赖于操作系统的功能的便携式方法。
+
+os.getenv(key，default)方法用于返回环境变量键的值，如果没有找到键则返回默认参数。
+
+
+
+
+
+
+
+# Maya-Python面向对象编程
+
+
+
+oop老生常谈，简要概括书上的面向对象与面向过程的区别。
+
+- 面向对象，编程思想是将数据与处理数据的代码进行封装成为类，再实例化成为对象。
+- 面向过程，编程思想是将数据与处理数据的代码分离。
+
+
+
+## 类与对象
+
+常用函数:
+
+| 函数名 | 作用     |
+| ------ | -------- |
+| dir()  | 查看属性 |
+|        |          |
+|        |          |
+
+语法：
+
+```python
+#经典：
+class myclass:
+	pass;
+
+#允许指定可从中派生类的父类
+class myclass(object):
+	pass;
+---------------------------------------------------
+#实例化
+instance = myclass();
+---------------------------------------------------
+#python甚至能动态向类/对象添加属性（也可以为函数），Σ(っ °Д °;)っ
+class myclass:
+    attribute = none;
+ 	pass
+
+#向类添加属性
+myclass.another_attribute = none;
+
+#向对象添加属性，且不会影响其他类的实例对象
+instance = myclass();
+
+def func(*args):print('add_func')
+instance.ins_func = func();
+instance.ins_attribute = none;
+
+#如果重复进行类的定义，原有的类的实例不会受影响，因为旧实例仍与内存中的某处对象类型关联,这种关系可用dir查看。
+-------------------------------------------------------
+#类的'初始化构'造通过__initi__方法实现
+#在python中，__init__是在实例化后再调用的。
+#self指调用此函数的实例对象。
+class person(object):
+	def __init__(self,*args,**kwargs):
+		self.name = kwargs.setdefault('name','None')
+		self.sex = kwargs.setdefault('sex','None')
+
+#这种实例化的属性本身不包含在类的定义，这种关系可用dir查看。
+person1 = person(sex = 'man')
+print(person1.name)
+print(person1.sex)
+print(dir(person))
+print(dir(person1))
+
+------------------------------------------------------------
+class person(object):
+	#这是类定义的属性，无需实例都可以访问。
+	classAttr = 1
+	def func(self):
+        #这是类的方法，他的第一个参数始终是实例本身self
+		print([self.name,self.sex])
+	def __init__(self,*args,**kwargs):
+		self.name = kwargs.setdefault('name','None')
+		self.sex = kwargs.setdefault('sex','None')
+
+#在py中打印一个对象或传递给str()，将调用对象的__str__方法,重写该操作,会影响所有实例。而如果没有重写，        
+#那么有类似输出#<__main__.person object at 0x00000178D7F6B5C8>
+def ovr_str(self):
+	return '%s,%s'%(self.name,self.sex)
+def ovr_repr(self):
+	return '''person(%s = '%s',%s = '%s')'''%('name',self.name,'sex',self.sex)
+
+#如果str和repr都重写了，那么会优先使用str。
+# person.__str__ = ovr_str 
+person.__repr__ = ovr_repr
+
+person1 = person(name = 'Tom',sex = 'man')
+person2 = person(name = 'Lily',sex = 'woman')
+
+print(person1)
+print(person1,person2)
+
+#如果repr返回的是字符串，将该字符串传给eval，可以复制对象
+copy_person = eval(person1.__repr__())
+print(copy_person,person1)
+print(id(copy_person),id(person1))
+-------------------------------------------------------
+#属性设置：https://www.runoob.com/python/python-func-property.html
+
+#通用方法,getter,setter,del均为函数方法，doc为文档字符串
+class_name.property_name = property(getter,setter,del,doc)
+
+------------------------------------------------------
+#静态
+@staticmethod
+def static_func():
+	pass
+#类方法
+@classmethod
+def class_func(cls):
+    pass
+
+#向类添加方法
+className.func_name = func_name
+
+#两者区别：类方法默认传递类本身作为第一个参数
+
+
+--------------------------------------------------------
+#继承
+
+class person(object):
+	country = 'China'
+	def func(self):
+		print([self.name,self.sex])
+	def __init__(self,*args,**kwargs):
+		self.name = kwargs.setdefault('name','None')
+		self.sex = kwargs.setdefault('sex','None')
+
+class guangdong_person(person): #使用person作为父类，继承的第一个关注点
+
+	def __init__(self,*args,**kwargs):
+		person.__init__(self,*args,**kwargs) #父类部分的初始化，继承的第二个关注点
+		self.dialect = kwargs.setdefault('dialect','Cantonese')
+
+print(dir(guangdong_person))
+
+```
+
+
+
+## PyMEL
+
+ 为什么使用PyMEL？
+
+- maya.cmds没有像MEL一样提供合适的面向对象形式。
+- PyMEL为cmds模块提供了完全面向对象的替代方案。
+
+
+
+### PyMEL安装
+
+关于PyMEL安装，如果你有像我一样的问题如下：
+
+import pymel.core as pm
+
+错误: ModuleNotFoundError: file D:\maya\Maya2022\Python37\lib\site-packages\shiboken2\files.dir\shibokensupport\__feature__.py line 142: No module named 'pymel'
+
+![image-20211114221912709](image-20211114221912709.png)
+
+那么你也许能从该文章获得帮助：https://forums.autodesk.com/t5/maya-programming/maya-2022-pymel-how-to-import/td-p/10409310
+
+完整的pycharm与maya工作流将会在之后进行总结。
+
+### PyMEL的具体优势
+
+PyNode类，简化了很多API方法的接口。通过使用PyNode类，我们可以直接使用基于对象的操作执行常见的命令，而不必如maya.cmds般需要频繁操作字符串，使用含大量标志的命令。
+
+PyMEL详细使用参见[Maya脚本使用](#Maya脚本实战)
+
+
+
+
+
+# 使用Maya命令创建GUI
+
+Maya.cmds本身可用来创建GUI控件。常见函数如下
+
+```python
+#窗口创建
+win = cmds.window('handle_name',title = 'title name',widthHeight=(x,y))
+#窗口显示
+cmds.showWindow(win)
+#销毁GUI
+cmds.deleteUI(win,window=True)
+```
+
+尺寸参考：
+
+![image-20211115184436204](image-20211115184436204.png)
+
+```python
+#窗口基类模板
+class My_OptionsWindow(object):
+    # 设置
+    def __init__(self):
+        self.window = 'handle_name'
+        self.title = 'title_name'
+        self.size = (x, y)  # widthHeight
+        self.supportsToolAction = False  # 用于默认禁止某些菜单功能。
+
+    # 菜单功能
+    def commonMenu(self):
+        # cmds.menu(label = 'label_name') 该命令用于创建菜单项
+        self.editMenu = cmds.menu(label='Edit')
+
+        # cmds.menuItem(label = 'label_name',command = funtion_pointer)该命令用于创建菜单子项
+        # command标志用于指定使用该GUI控件时发生的操作。                                                                                     
+
+    #self.editMenu = cmds.menuItem(label='label_name', command=funtion_pointer)
+
+    # cmds.menuItem(d = True)该命令用于创建子项间的分隔符
+    # cmds.radioMenuItemCollection() #该命令用于创建一个菜单项序列
+    # cmds.menuItem(label = 'label_name',radioButton = True,enable = self.supportsToolAction) # 该命令用于使该菜单项成为序列组中的成员，并设置为禁用。
+
+    # 点击button后触发的函数,该函数将决定button的功能实现。
+    def buttonFunc(self, *args):
+        self.otherFunc();
+
+    # 布局与按钮
+    def commonButton(self):
+        # 一般的，我们会设置按钮的宽度和高度
+        self.buttonSize = ((self.size[0] - 18) / 3, 26)
+        # GUI层次结构中，按钮控件必须有布局Layout作为父对象
+        # 行布局，设置标志列数目这里为3
+        self.buttonLayout = cmds.rowLayout(
+            numberOfColumns=3,
+            cw3 = (
+            # 列宽度设置
+                self.buttonSize[0] + 3,
+                self.buttonSize[0]+3,
+                self.buttonSize[0]+3
+            ),
+        ct3 = ('both', 'both', 'both'),  # 附加
+        co3 = (2, 0, 2) , # 偏移
+        cl3 = ('center', 'center', 'center')
+        # 对齐标志，现在可不写，默认居中
+
+        )
+        # cmds.columnLayout() 列布局
+
+        # 按钮创建。
+        # 注意：在Maya中，创建任何布局或控件，会假设最新创建的布局是父对象
+        self.button = cmds.button(
+            label='button name',
+            height=self.buttonSize[1],
+            command=self.buttonFunc
+        )
+
+    # 绘制
+    def create(self):
+        if cmds.window(self.window, exists=True):
+            cmds.deleteUI(self.window, window=True)
+        self.window = cmds.window(
+            self.window,
+        title = self.title,
+        widthHeight = self.size,
+        )
+        cmds.commonMenu()  # 该项用于创建菜单
+        cmds.commonButtons()  # 该项用于创建布局和按钮
+        cmds.showWindow()  # 该项用于显示窗口 
+
+
+# 使用
+myWindow = My_OptionsWindow()
+myWindow.create()
+```
+
+## 基本框架：
+
+```python
+import maya.cmds as cmds
+
+
+class My_OptionsWindow(object):
+    @classmethod
+    def showUI(cls):
+        #该函数用于快速查看布局
+        win = cls()
+        win.create()
+        return win
+    def __init__(self):
+        self.window = 'handle_name'
+        self.title = 'title_name'
+        self.size = (546, 350)
+        self.supportsToolAction = False
+
+    def create(self):
+        if cmds.window(self.window, exists=True):
+            cmds.deleteUI(self.window, window=True)
+        self.window = cmds.window(
+            self.window,
+            title = self.title,
+            widthHeight = self.size,
+            menuBar = True
+        )
+        self.mainForm = cmds.formLayout(nd=100)
+        self.commonMenu()
+        self.commonButton()
+
+		#该段代码用于为窗口添加中央窗格，这里的formLayout是嵌套在选项卡布局optionsBorder中，而
+        #optionsBorder是嵌套在mainForm中的。
+        self.optionsBorder = cmds.tabLayout(
+            scrollable = True,
+            tabsVisible = False,
+            height = 1
+        )
+        cmds.formLayout(
+            self.mainForm,e=True,
+            attachForm = (
+                [self.optionsBorder,'top',0],
+                [self.optionsBorder,'left',2],
+                [self.optionsBorder,'right',2]
+            ),
+            attachControl = (
+                [self.optionsBorder,'bottom',5,self.button_2]
+            )
+        )
+        self.optionsForm = cmds.formLayout(nd=100)
+        self.displayOptions()
+
+        cmds.showWindow()
+
+    def commonMenu(self):
+        
+        self.editMenu = cmds.menu(label = 'Edit')
+        self.editMenuSave = cmds.menuItem(label='Save')
+        self.editMenuReset = cmds.menuItem(label='Reset')
+
+        self.editMenuDiv = cmds.menuItem(d = True)
+
+        self.editMenuRadio = cmds.radioMenuItemCollection()
+        self.editMenuTool = cmds.menuItem(label = 'tool',radioButton = True,enable = self.supportsToolAction)
+        self.editMenuAction = cmds.menuItem(label = 'Action',radioButton = True,enable = self.supportsToolAction)
+
+
+        self.helpMenu = cmds.menu(label='help')
+        self.helpMenuItem = cmds.menuItem(label='help nothing-_-')
+
+
+
+
+    #button功能
+    def buttonFunc_1(self, *args):pass
+    def buttonFunc_2(self, *args):pass
+    def buttonFunc_3(self, *args):pass
+
+    def displayOptions(self):pass
+
+
+
+    def commonButton(self):
+        self.buttonSize = ((self.size[0] - 18) / 3, 26)
+
+        self.button_1 = cmds.button(
+            label='button 1',
+            height=self.buttonSize[1],
+            command=self.buttonFunc_1
+        )
+        self.button_2 = cmds.button(
+            label='button 2',
+            height=self.buttonSize[1],
+            command=self.buttonFunc_2
+        )
+        self.button_3 = cmds.button(
+            label='button 3',
+            height=self.buttonSize[1],
+            command=self.buttonFunc_3
+        )
+
+        cmds.formLayout(
+            self.mainForm,e=True,
+            #该标志用于指定某个控件固定到窗体的边界，left/right/bottom一边离窗体边缘的偏移
+            attachForm = (
+                [self.button_1,'left',5],
+                [self.button_1,'bottom',5],
+                [self.button_2,'bottom',5],
+                [self.button_3,'bottom',5],
+                [self.button_3,'right',5]
+            ),
+            #该标志用于指定将边固定到相对坐标网格中的点，倒数第二位为偏移，最后为窗体宽度相对值
+            attachPosition = (
+                [self.button_1,'right',1,33],
+                [self.button_3,'left',0,67]
+            ),
+            #该标志用于指定某个控件的边附加到另一个控件，数字为偏移
+            attachControl = (
+                [self.button_2,'left',4,self.button_1],
+                [self.button_2,'right',4,self.button_3]
+            ),
+            #该标志用于指定控件某个边不应该附加到任何地方，因已指定按钮底边附加到Form了
+            attachNone = (
+                [self.button_1,'top'],
+                [self.button_2,'top'],
+                [self.button_3,'top']
+            )
+        )
+
+
+
+
+# 使用
+myWindow = My_OptionsWindow()
+myWindow.create()
+```
+
+## radioButton
+
+```python
+ def displayOptions(self):
+        self.objType = cmds.radioButtonGrp(
+            label = 'Object Type',
+            labelArray4  = [
+                'Cube',
+                'Cone',
+                'Cylinder',
+                'Sphere',
+                ],
+            numberOfRadioButtons = 4,
+            select = 1 #默认选择选项为1，
+                )
+
+    def buttonFunc_2(self, *args):
+        self.objIndAsCmd = {
+            1:cmds.polyCube,
+            2:cmds.polyCone,
+            3:cmds.polyCylinder,
+            4:cmds.polySphere
+        }
+        objIndex = cmds.radioButtonGrp(
+            self.objType,q=True,
+            select = True
+        )
+        newObject = self.objIndAsCmd[objIndex]()
+```
+
+![image-20211116195841248](image-20211116195841248.png)
+
+## 折叠的框架布局
+
+```python
+#框架布局，将控件收集到一个可下拉的组里
+ 		self.xformGrp = cmds.frameLayout(
+            label = 'Transformations',
+            collapsable =True
+        )
+    	#这一步是将xformGrp附加到上面的ObjectType控件和整个大布局optionsForm上
+        cmds.formLayout(
+            self.optionsForm,e =True,
+            attachControl = (
+                [self.xformGrp,'top',2,self.objType]
+            ),
+            attachForm = (
+                [self.xformGrp,'left',0],
+                [self.xformGrp,'right',0],
+            )
+        )
+        
+        #旧版本需要进一步嵌套在列布局，新版本可以删除
+        self.xformCol = cmds.columnLayout()
+        
+        #下列三个控件都是列布局的子对象，浮点数输入字段
+        self.position = cmds.floatFieldGrp(
+            label = 'Position',
+            numberOfFields = 3 
+        )
+        self.rotation = cmds.floatFieldGrp(
+            label = 'Rotation(XYZ)',
+            numberOfFields = 3
+        )
+        self.scale = cmds.floatFieldGrp(
+            label = 'Scale:',
+            #列数，上限为4
+            numberOfFields =3,
+            #可以设置默认值，但是至少要填4个字段
+            value = [1.0,1.0,1.0,1.0]
+        )
+        #将optionsForm设置为当前的父对象，否则下面的操作会把当前的列布局当成父对象
+        cmds.setParent(self.optionsForm)
+        
+        
+        
+        #现在尝试把radiobutton写进去
+```
+
+
+
+![image-20211116201104262](image-20211116201104262.png)
+
+
+
+## 键入交互
+
+```python
+ def buttonFunc_2(self, *args):
+        #查询相应的控件获得信息
+        pos = cmds.floatFieldGrp(
+            self.position,q=True,
+            value = True
+        )
+        rotation = cmds.floatFieldGrp(
+            self.rotation, q=True,
+            value=True
+        )
+        scale = cmds.floatFieldGrp(
+            self.scale, q=True,
+            value=True
+        )
+        self.objIndAsCmd = {
+            1:cmds.polyCube,
+            2:cmds.polyCone,
+            3:cmds.polyCylinder,
+            4:cmds.polySphere
+        }
+        objIndex = cmds.radioButtonGrp(
+            self.objType,q=True,
+            select = True
+        )
+        newObject = self.objIndAsCmd[objIndex]()
+        cmds.xform(newObject[0],t=pos,ro=rotation,s=scale)
+```
+
+```python
+objIndAsCmd = {
+            1:cmds.polyCube,
+            2:cmds.polyCone,
+            3:cmds.polyCylinder,
+            4:cmds.polySphere
+        }
+objIndex = 1
+newObject =objIndAsCmd[objIndex]() #我觉得神奇的操作，获取字典值后加个()就能调用函数
+print(newObject)
+```
+
+## 颜色控件
+
+```python
+	self.color= cmds.colorSliderGrp(label = 'Vertex Colors')
+        cmds.formLayout(
+            self.optionsForm,e=True,
+            attachControl = ([self.color,'top',0,self.xformGrp]),
+            attachForm = ([self.color,'left',0])
+        )
+    
+   # 应用：与前面交互的类似，也是查，然后着色
+	col = cmds.colorSliderGrp(
+            self.color,q=True,
+            rgbValue = True
+        )
+    cmds.polyColorPerVertex(newObject[0],colorRGB=col,colorDisplayOption =True)
+```
+
+## 使用pickle模块序列化数据
+
+
+
+```python
+def exportPose(filePath, rootNodes):
+    """Save a pose file at filePath for rootNodes and their children"""
+    #python内置函数open()可以创建文件对象
+    try: f = open(filePath, 'wb')
+    except:
+        #通知对话框
+        cmds.confirmDialog(
+            t='Error', b=['OK'],
+            m='Unable to write file: %s'%filePath
+        )
+        raise
+    #创建将转储到姿势文件中的数据
+    data = saveHiearchy(rootNodes, [])
+    # 向一个文件写入序列化数据
+    pickle.dump(data, f)
+    # close the file
+    f.close()
+```
+
+
+
+## 使用PySide2进行GUI创建
+
+### 第一步：安装
+
+找到maya路径下的bin文件，按住shift右键以PowerShell窗口打开，输入mayapy后按Tab，然后继续输入-m pip install PySide2再按回车后即可安装。
+
+
+
+# Maya文档
+
+调用Maya API的注意事项：
+
+
+
+## SWIG
+
+Maya API的SWIG层，用于让C++API与Python进行通信。有了SWIG层，在Python中调用API，就等效于在C++中调用API。在Python中调用API时，需要将参数转化为C++可接受的内容，Python处理C++API返回值时，也要将其转化为Python可接受的内容。
+
+
+
+
+
+## MScriptUtil
+
+C++API中如果函数的参数是引用形式的简单类型，那么Python传参前就需要MScriptUtil类进行转换（Python传简单类型都是传值）。
+
+事实上，MScriptUtil类就是专门对特殊数据进行处理以便交互的工具类。文档中说明：Utility class for working with pointers and references in Python。
+
+下列案例可以很好的看到API的交互：
+
+```python
+import maya.OpenMaya as om
+doubleList = om.MScriptUtil()
+doubleList.createFromList([1.0,1.0,2.0],3)
+print(doubleList)
+vec = om.MVector(doubleList.asDoublePtr())
+print(vec)
+print(vec.x)
+
+'''显然，如果在Python中没有列表数据，而只有数值型的，则可用下列方法实现转化
+doubleList = om.MScriptUtil()
+doubleList.createFromDouble(1.0,1.0,2.0)
+vec = om.MVector(doubleList.asDoublePtr())
+```
+
+MScriptUtil默认构造函数
+
+![image-20211117205739657](image-20211117205739657.png)
+
+
+
+该方法用于传入python的列表和列表长度，以在MScriptUtil对象中存储对应数据。
+
+![image-20211117205720109](image-20211117205720109.png)
+
+该方法用于返回类中数据组成的double型数组的指针。
+
+![image-20211117205848758](image-20211117205848758.png)
+
+MVector其中一个构造函数，传入三个double参数。
+
+![image-20211117212408755](image-20211117212408755.png)
+
+
+
+输出：
+
+![image-20211117205646020](image-20211117205646020.png)
+
+有了上述三个函数说明，就能清晰了解SWIG通信交互。
+
+首先在Python中调用C++API，创建一个MScriptUtil对象，使用该对象的方法将python数据类型（无类型指针，可以传python任意类型数据）传入到对象中，再通过对象的返回指针方法获得C++可接受的参数类型，使用这个C++可以理解的内容就能畅游其他类的方法了。
+
+
+
+
+
+## Python与C++API间的区别
+
+
+
+### 字符串
+
+虽然C++API包含MString和MStringArray类用于处理与返回字符，但是Python字符串内置了很多操作因而我们无需使用这些类。参数要求这些类型的，都可以直接传Python字符串和字符串列表，而元组由于不可变，仅用于const引用时。
+
+### 异常处理
+
+Mstatus是用于C++中捕获错误的，方式是返回状态码。但是由于Python中try-except内置了强错误捕获机制，因此PyAPI中不能完全使用Mstatus类。在Python中必须使用try-except代替Mstatus。
+
+### void*指针
+
+由于void*的无类型特性，所有需要void\* 参数的都可以传递Python对象。
+
+https://www.runoob.com/w3cnote/c-void-intro.html
+
+### MPx代理类
+
+一些自定义对象需要创建代理类，但需要创建后将控制权交给Maya以防止GC。
+
+### 带参数的命令
+
+创建自定义命令，该命令支持标志和参数，且想在python中使用，需要避免MArgList。
+
+### 撤销
+
+脚本内API的操作与Maya撤销机制不兼容,但脚本化命令可以。如果涉及修改依存关系图（DG），必须在脚本命令中实现才能支持撤销功能。
+
+### 简单数组类型参数
+
+所有需要简单类型数组参数的函数，都要使用MScriptUtil类来访问C++API中的函数。
+
+
+
+https://www.cnblogs.com/jins-note/p/9512719.html
+
+# Maya命令设计
+
+Maya脚本路径添加：在Maya.nev中输入MAYA_PLUG_IN_PATH = your_filepath
+
+
+
+## 常用类介绍
+
+### ommpx.MPxCommand
+
+-官方说明：
+
+Base class for user commands.
+
+This is the proxy class for creating MEL commands through the API.
+
+Each command is derived from this one, and must have a *doIt* method, and optionally *undoIt*, and *redoIt* methods.
+
+The *doIt* method should collect whatever information is required to do the task, and store it in local class data. It should finally call *redoIt* to make the command happen. The *redoIt* method should do the actual work, using only the local class data. The *undoIt* method should undo the actual work, again using only the local class data.
+
+Maya contains support for infinite levels of undo. If a command written in a plug-in changes the state of anything in Maya, it should implement *undoIt* and *redoIt* methods. As well, if the *doIt* method returns successfully, Maya will call the method's *isUndoable* method immediately afterwards. If that method returns true, the instance of this class is retained and passed to Maya's undo manager so that the *undoIt* and *redoIt* methods can be called when appropriate. If *isUndoable* returns false, the command instance is destroyed right away.
+
+So, for example, if a command supports both *query* and *edit* modes, in query mode the command should set a flag so that the *isUndoable* method returns false to prevent that command instance from being retained by the undo manager. In edit mode, where the state of Maya is changed, *isUndoable* should return true to enable undo and redo.
+
+-总结：
+
+- 该类是创建自定义命令的代理类，大多数自定义命令都会继承此类。
+
+- 自定义命令类必须有doIt方法，doIt方法用于存取执行任务所需的数据，最后再调用redoIt来实现真正的命令功能。
+
+- 命令如果需要改变在Maya中某个物体的状态，那么需要实现undoIt和redoIt的方法以支持撤销/重做机制。
+
+- Maya的Undo（撤销）管理有一个isUndoable方法，该方法每当doIt执行成功后便会被调用，如果isUndoable返回True，那么该类的实例会被传入到Undo（撤销）管理中，想要撤销/重做时以便调用undoIt和redoIt方法。
+
+- query模式不需要撤销/重做机制，因此需要设置相应的标志让isUndoable返回false以阻止实例进入Undo（撤销）管理中。
+
+  
+
+![image-20211119111455893](image-20211119111455893.png)
+
+从公共成员方法看到，doIt 、undoIt、 redoIt都是虚继承，我们可以在子类中对其方法进行override，以达到自定义命令的功能。
+
+![image-20211119111709413](image-20211119111709413.png)
+
+该方法用于在MArgDataBase或其父类MArgParser构造器中对插件命令的初始化。返回一个MSynatx对象。
+
+-The user should declare and define a syntax contstructing method that must be registered with Maya by passing the function pointer as a parameter in [MFnPlugin::registerCommand()](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_fn_plugin.html#a66f0e341f74cba9d100ab8a45e71cc0b). The result is that when [MPxCommand::syntax()](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_px_command.html#a38a0e761b80b1b621883a0462c2bbf33) is called it returns the syntax object that the user has created in the custom syntax constructing method that was registered. To avoid conflicts it is important that the user's custom syntax defining method be given a name other than "syntax." It can have any other name as long as it corresponds with the function pointer used to register the method with Maya.
+
+![image-20211119163056912](image-20211119163056912.png)
+
+-上述方法（类似）都是将构造的API数组里的值放入命令的返回区域。
+
+
+
+
+
+
+
+
+
+参考：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_px_command_html
+
+
+
+### om.MSyntax
+
+-太长了不复制。就是一个命令的相关语法。
+
+
+
+
+
+
+
+
+
+### ommpx.MFnPlugin
+
+-The constructor for this class must be passed the [MObject](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_object.html) that Maya provides as an argument to initializePlugin and uninitializePlugin.传入对象为MObject，即为我们的自定义插件。
+
+-用于初始化和注销插件的类。
+
+![image-20211118230728952](image-20211118230728952.png)
+
+![image-20211118231913847](image-20211118231913847.png)
+
+具体说明：cmmandName就是调用命令的实际名称PluginCmdName，creatorFunction就是命令创建器cmdCretor。
+
+参考：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_fn_plugin_html
+
+
+
+### om.MDagPath
+
+-Provides methods for obtaining one or all Paths to a specified DAG Node, determining if a Path is valid and if two Paths are equivalent, obtaining the length, transform, and inclusive and exclusive matrices of a Path, as well as performing Path to Path assignment.
+
+-If a DAG object is instanced, then an [MDagPath](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_dag_path.html) is required to identify a particular instance. DAG paths are also required when doing world space transformations.
+
+-MDagPath常用于当需要进行世界空间下的转换时。
+
+![image-20211118234315551](image-20211118234315551.png)
+
+![image-20211118234653730](image-20211118234653730.png)
+
+参考：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_dag_path_html
+
+
+
+### om.MFnTransform
+
+-Create and access transform nodes.
+
+-The [MFnTransform](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_fn_transform.html) function set provides access to transformation DAG nodes called transforms.
+
+继承关系
+
+![image-20211119124621994](image-20211119124621994.png)
+
+![image-20211118235555630](image-20211118235555630.png)
+
+![image-20211118235056515](image-20211118235056515.png)
+
+![image-20211118235108409](image-20211118235108409.png)
+
+![image-20211118235231639](image-20211118235231639.png)
+
+![image-20211118235617613](image-20211118235617613.png)
+
+参考：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_fn_transform_html
+
+![image-20211119124527181](image-20211119124527181.png)
+
+
+
+-上面的方法是其父类方法。 将给定路径的Dag节点赋予函数集，以初始化函数集数据属性。
+
+
+
+### om.MSpace
+
+-Space transformation identifiers.
+
+-[MSpace](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_space.html) encompasses all of the types of transformation possible. The [MSpace](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_space.html) identifiers are used to determine the space in which the user is applying or querying transformation or component (i.e. vertex positions) data of a Maya object.
+
+-一个定义在OpenMaya里却在API文档里的MTypes.h找到的奇怪类。该类是空间转换标识符，用于所有类型的转换，当用户需要进行转换或查询某个目标时其能提供确定的空间。
+
+![image-20211119001437802](image-20211119001437802.png)
+
+![image-20211119002817190](image-20211119002817190.png)
+
+参考：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_space_html
+
+
+
+### om.MEulerRotation
+
+-Euler Rotation Math.
+
+-This class provides methods for working with Euler angle rotations. Euler angles are described by rotations in radians around the x, y, and z axes, and the order in which those rotations occur.
+
+-该函数提供了很多欧拉旋转的数学方法。常用来获得欧拉旋转顺序。类中自带旋转顺序的枚举器。
+
+![image-20211119003621790](image-20211119003621790.png)
+
+![image-20211119155059106](image-20211119155059106.png)
+
+-上面是该类的公有属性，其order指定了欧拉旋转的顺序。
+
+参考：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_euler_rotation_html
+
+
+
+### om.MArgDatabase
+
+-Command argument list parser
+
+-This class extends [MArgParser](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_arg_parser.html) by providing the ability to retrieve flag parameters, command arguments and command objects as selection lists.
+
+-命令参数列表解析器。用于检索标志参数、命令参数和命令对象作为选择列表。其继承于[MArgParser](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_arg_parser.html#aa38abc6623182dacee0fcb4136e403b8)。
+
+-必须使用MArgDatabase对象来解析、查看输入了哪些参数。而MArgList则用于无标志参数的命令，一般不使用其来手动处理参数。
+
+-它的第二个构造方法，使用syntax语法中的数据来解析argList中提供的参数，以创建一个MArgDatabase命令参数列表解析器。
+
+![image-20211119004016100](image-20211119004016100.png)
+
+
+
+-该函数用于将**传入的对象参数**存到选择列表里。
+
+![image-20211119005418457](image-20211119005418457.png)
+
+
+
+![image-20211119104048434](image-20211119104048434.png)
+
+
+
+
+
+![image-20211119005923400](image-20211119005923400.png)
+
+-其父类的一个方法：[MArgParser](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_arg_parser.html#aa38abc6623182dacee0fcb4136e403b8)::isFlatSet(),用于查询命令的参数，以确定是否设置了给定标志。
+
+![image-20211119125749430](image-20211119125749430.png)
+
+-其父类的一个方法：[MArgParser](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-SDK/cpp_ref/class_m_arg_parser.html#aa38abc6623182dacee0fcb4136e403b8)::flatArgumentString.用于将给定标志值的第index参数的值返回为一个MString。该返回值常用于进行字典查找。
+
+
+
+
+
+
+
+参考：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_arg_database_html
+
+
+
+
+
+
+
+### om.MSelectionList
+
+-A list of MObjects.
+
+-This class implements a list of MObjects.
+
+-The global selection list is a special case where the objects on the list are also active objects in Maya.
+
+-Besides the usual list methods, this class also provides an add method which retrieves objects from Maya, such as dependency nodes, by name.
+
+-这个类是一个Mobjects的列表。
+
+![image-20211119103636741](image-20211119103636741.png)
+
+![image-20211119123435051](image-20211119123435051.png)
+
+-上面的方法用于将列表中的字符返回给脚本中的数组。
+
+
+
+参考：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_selection_list_html
+
+
+
+### om.MItSelectionList
+
+-用于迭代选择列表中的各项
+
+![image-20211119121253005](image-20211119121253005.png)
+
+-上面的构造方法用于从给定的list中创建一个迭代器。该迭代器指向的是一个复制后的列表。
+
+![image-20211119121809257](image-20211119121809257.png)
+
+-上面的itemType方法用于返回迭代器指向的当前项的类型。
+
+
+
+![image-20211119122107893](image-20211119122107893.png)
+
+-上面的isDone方法用于判断迭代器是否完成迭代工作。
+
+![image-20211119123814139](image-20211119123814139.png)
+
+-上面的getDagPath方法用于获取当前迭代选择项的Dag路径，并将其传入dagPath中。
+
+
+
+参考：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_it_selection_list_html
+
+
+
+
+
+
+
+
+
+## 自定义命令框架
+
+重要概念：
+
+命令对象，Maya中**撤销重做/队列**中唯一**可直接存储的对象**类型。这些对象包括MPxCommand和其子孙。
+
+非命令API对象，可以存储到命令对象中，成为其**数据属性**以保存之前的状态。
+
+
+
+DG（依存关系图），呈现场景的两种方法之一，是一个节点链。
+
+DG（依存关系图）节点，每个节点代表一个动作，动作可以是对场景的构建或更改。
+
+DAG，有向非循环图，简单来说，他是阐述一个几何体对象实例是如何被创建的。Hypergraph 窗口以层次形式查看 DAG 信息。
+
+DAG层次（对象层次），组成对象的所有节点的父子关系。 DAG 层次始终包括两种类型的节点：**变换和形状**。
+
+构建历史，Maya右侧通道（Channel Box），我们经常需要注意的那个历史记录。里面的对象是实际的DG节点。
+
+撤销/重做队列，只允许能**显式支持**撤销/重做的命令对象加入。
+
+![image-20211120005619045](image-20211120005619045.png)
+
+如上，每一项都是DG节点，这种创建与编辑DG节点的行为就是构建历史。
+
+![image-20211202160320301](image-20211202160320301.png)
+
+- 左边，DAG路径，假设他是从上往下工作的。
+- 右边，DG工作路径，假设他是从左往右的。
+- 一般来说，DG工作路径中独立的节点是Transform类型的，但是灯光等比较特殊，他的Shape是孤立的，而Transform是与defaultlightSet相连的。DAG路径中，Shape节点是Transform节点的子节点。
+
+
+
+-参见https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=GUID-D53B9E3D-E6E3-4CC3-A38F-3AA3A09205E5
+
+-DAG：https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=GUID-5029CF89-D420-4236-A7CF-884610828B70
+
+### 关于撤销/重做支持
+
+
+
+MPxCommand类的创建方法只会返回命令对象的指针MPxPtr,而Maya的Undo要求必须将命令对象保留到内存中以便工作的进行，但是由于PythonGC机制，我们必须将MPxPtr指向对象的所有权交给Maya，否则无法进行Undo。
+
+
+
+什么时候要为命令加入撤销/重做支持？
+
+- 当命令会对DG图进行任何更改时。加入撤销/重做支持，才能将命令对象添加到Undo manager中。
+
+
+
+撤销/重做支持如何实现？
+
+- MDGModifier类。该类支持在节点上建立连接和设置属性值。支持在一个对象上积累一系列操作，执行时调用doIt，或撤销时执行undoIt。
+
+
+
+命令模式：
+
+MSntax.enableEdit()/MSyntax.enableQuery() :自动在语法定义中添加针对各种模式的合适flag。例如，可以支持在两种模式下，标志的参数类型可以不同。但是，不支持仍可以传入标志参数以进一步具体地查询。而MSyntax对象方法makeFlagQueryWithFullArgs可以帮助我们在语法创建时解决这个问题。
+
+MArgDataBase.isEdit()/MArgDatabase.isQuery() :测试各个标志是否已被设置。
+
+
+
+
+
+
+
+
+
+# Maya脚本实战<a name="#Maya脚本实战"> </a>
+
+## 基本知识
+
+
+
+
+
+![image-20211130194833751](image-20211130194833751.png)
+
+注意看通道盒，上面的属性(areaLight2)是属于Transform节点类型的，下面的属性是属于shape节点类型。他们同属于一个DAG层次(对象层次)，通常shape节点用于定义几何体属性，而Transform节点用于控制位置、缩放、旋转及枢轴等等属性。更具体的例子，打开一个对象的属性编辑器：
+
+![image-20211202105920546](image-20211202105920546.png)
+
+![image-20211202105934148](image-20211202105934148.png)
+
+从上图可以看到DAG层次包含的两个节点Transform：areaLight1，Shape：areaLightShape1及他们具体所拥有的属性。所以当我们需要对这些属性进行修改时，需要明确知道属性在对象的Transform还是shape上。
+
+
+
+### PyNodes
+
+前面说到，在PyMEL中，PyNodes类是派生于mel和API的，而大多的mel命令和API方法都被包装到名为[PyNodes](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/pynodes.html?highlight=pynodes)的类中，PyNodes方法都是API实例化后赋予的。PyNodes类本身是包含所有节点(node)、组件(component)、属性相关(attribute-related)等类的共称。
+
+Maya中不同类型的对象都能表示成PyNodes对象，也就是说，只要获取场景中物体的PyNodes实例，就可以用面向对象的形式使用方法，从而对场景物体进行各种属性的获取和设置。
+
+### node types
+
+首先讲node types，执行以下代码：
+
+```python
+import pymel.core as pm
+orig = pm.polyCube(name='myCube')
+print(orig) 
+print(type(orig[0])) 
+print(type(orig[1])) 
+#>> [nt.Transform('myCube'), nt.PolyCube('polyCube1')]
+#<class 'pymel.core.nodetypes.Transform'>
+#<class 'pymel.core.nodetypes.PolyCube'>
+```
+
+nt，就是node types的缩写，是PyMEL专为Maya类型层次结构的每个节点类型所提供的类。一般使用PyMEL的方法都会返回这些这些类的实例。上面代码输出了两个返回的nt对象实例：
+
+- pymel.core.nodetypes.Transform，节点层次结构中的Transform节点
+- pymel.core.nodetypes.PolyCube，节点层次结构中的PolyCube节点。
+
+根据通道盒的介绍，一般我们都以Transform节点来修改对象属性。在PyMEL中，很多node types类是没有方法的，仅作为在层次结构中充当占位符角色。但有几个重要节点如Transform节点需要关注： [`nt.DependNode`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/classes/pymel.core.nodetypes/pymel.core.nodetypes.DependNode.html#pymel.core.nodetypes.DependNode), [`nt.DagNode`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/classes/pymel.core.nodetypes/pymel.core.nodetypes.DagNode.html#pymel.core.nodetypes.DagNode), [`nt.Transform`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/classes/pymel.core.nodetypes/pymel.core.nodetypes.Transform.html#pymel.core.nodetypes.Transform), and [`nt.Constraint`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/classes/pymel.core.nodetypes/pymel.core.nodetypes.Constraint.html#pymel.core.nodetypes.Constraint).
+
+
+
+### 获取PyNodes实例
+
+那么如何获取物体(或者其它)的PyNodes类实例呢，这就需要列表方法。pyMEL文档中列出了几个常用的方法： [`ls`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/functions/pymel.core.general/pymel.core.general.ls.html#pymel.core.general.ls), [`listRelatives`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/functions/pymel.core.general/pymel.core.general.listRelatives.html#pymel.core.general.listRelatives), [`listTransforms`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/functions/pymel.core.general/pymel.core.general.listTransforms.html#pymel.core.general.listTransforms), [`selected`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/functions/pymel.core.general/pymel.core.general.selected.html#pymel.core.general.selected), and [`listHistory`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/functions/pymel.core.general/pymel.core.general.listHistory.html#pymel.core.general.listHistory)。
+
+```python
+import pymel.core as pm
+pyNodesInstanceList = pm.ls(type = 'object type') 
+#这样pyNodesInstanceList列表中就全是该类型的pyNodes对象了。
+
+pyNodesInstanceList_1 = pm.ls(type = 'object type')[0]
+#这样获取单个pyNodes对象实例
+
+
+```
+
+**注意**：ls返回列表中的对象是指定类型的（例如是Arealight，就返回nt.Arealight，是Transform，就返回Transform）;而创建pyNodes节点时，一般返回的都是Transform节点。
+
+
+
+
+
+### 访问属性与方法
+
+获得对象的属性。在PyMEL中对象的函数调用是链式查找的，通俗点说就是对象自己没有方法，就找链中的子节点。一个Transform型对象，如果本身不具备某种方法，那么调用该方法时会传递给适当的类如Shape类（[节点介绍](https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=GUID-21B83FF0-0435-4087-8C2E-23B420028B71)），因为Shape类在DAG层次中是Transform的子节点；如果本身具备某种方法（查阅PyMEL文档）则直接调用该方法即可。反过来却行不通，Shape类节点不能直接使用父节点的方法，它首先需要转化为父节点类型，然后调用。
+
+通常，在PyMEL中使用ls（type）得到的一般都是nodetypes下对应的类型，而非Transform或shape类型（灯光除外），如果想要使用这些节点的方法，需要适当的转换，如下：
+
+```python
+import pymel.core as pm
+#获取某个灯光类型的pyNodes实例。ls返回实例通常都是
+lightInstance = pm.ls(type = 'light')[0]
+print("该实例属于" ,type(lightInstance))
+print("该实例属于" ,type(lightInstance.getTransform()))
+print(lightInstance.getIntensity())
+print(lightInstance.getTransform().getIntensity())
+'''
+该实例属于 <class 'pymel.core.nodetypes.AreaLight'>
+该变换属于 <class 'pymel.core.nodetypes.Transform'>
+1.0 #AreaLight本身属于shape节点，我们调用的是AreaLight父类Light的方法getIntensity()
+1.0 #从Transform类型节点调用方法却发现没有，故推送给Shape节点调用
+'''
+print(lightInstance.getTransform().getTransformation())
+try:
+    
+    print(lightInstance.getTransformation())
+except:
+    print("no attribute or method")
+'''
+
+ [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]] #正确，矩阵就是在Transform中获得
+ no attribute or method #出错，类型不能获得矩阵。
+'''
+print("color",type(lightInstance.color),lightInstance.color.get())
+print("color",type(lightInstance),lightInstance.getColor())
+print("color",type(lightInstance.getTransform()),lightInstance.getTransform().getColor())
+
+"""
+>>
+#同上分析。
+#从API调用获取的颜色信息更多，直接访问属性并获取只有rgb。
+color <class 'pymel.core.general.Attribute'> (1.0, 1.0, 1.0)#这里先访问属性，属性类是nt.Attribute,按下不表！
+color <class 'pymel.core.nodetypes.AreaLight'> [1.0, 1.0, 1.0, 1.0]
+color <class 'pymel.core.nodetypes.Transform'> [1.0, 1.0, 1.0, 1.0]
+
+```
+
+在C++API中深入了解其中的运作：
+
+![image-20211202131109661](/../image.assets/image-20211202131109661.png)
+
+同C++继承关系，在PyMEL中显然子类能直接调用父类方法(除非private)。在pyMEL中，我们有对应的方法查询到nt与C++类的对应关系如[`PyNode.__apimfn__`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/classes/pymel.core.general/pymel.core.general.PyNode.html#pymel.core.general.PyNode.__apimfn__).更多查看([API Classes](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/pynodes.html?highlight=pynodes#api-classes-and-their-pynode-counterparts))
+
+```python
+#首先在场景中创建一个polyCube，一个VolumeLight
+
+import pymel.core as pm
+#首先我们列举了两个不同对象，他们都属于对应的类型。
+cube = pm.ls(type = "polyCube")[0]
+print(type(cube)) 					#<class 'pymel.core.nodetypes.PolyCube'>
+light = pm.ls(type = "volumeLight")[0]
+print(type(light)) 					#<class 'pymel.core.nodetypes.VolumeLight'>
+
+#再获得对象的Transform类型，我们分别使用两种方法获得intensity属性值。
+#显然，第一个方法调用传递给shape节点实现。第二个方法通过直接访问属性获得。
+light2 = pm.ls("volumeLight1",type = 'transform')[0]
+print(type(light2)) 				#<class 'pymel.core.nodetypes.Transform'> 
+print(light2.getIntensity()) 		#1.0
+print(light2.intensity.get())		#1.0
+
+#找到Transform的shape子节点，发现就是列举得到的类型节点
+lightshape = light2.getShape()
+print(type(lightshape)) 			#<class 'pymel.core.nodetypes.VolumeLight'>
+
+''
+#接下来对pyNodes调用__apimfn__()查看对应关系。
+print(lightshape.__apimfn__())
+print(lightshape.intensity.__apimfn__())
+print(cube.__apimfn__())
+print(cube.height.__apimfn__())
+
+"""
+VolumeLight类型节点对应MFnVolumeLight，而其属性对应MPlug
+<maya.OpenMaya.MFnVolumeLight; proxy of <Swig Object of type 'MFnVolumeLight *' at 0x000001EAA1A830C0> >
+<maya.OpenMaya.MPlug; proxy of <Swig Object of type 'MPlug *' at 0x000001EAA1A17150> >
+
+Cube类型节点对应MFnDependencyNode，而其属性对应Mplug
+<maya.OpenMaya.MFnDependencyNode; proxy of <Swig Object of type 'MFnDependencyNode *' at 0x000001EAA1A93F00> >
+<maya.OpenMaya.MPlug; proxy of <Swig Object of type 'MPlug *' at 0x000001EAA1A17150> >
+
+
+```
+
+<img src="/../image.assets/image-20211202131217153.png" alt="image-20211202131217153" style="zoom:67%;" />
+
+![image-20211119124621994](/../image.assets/image-20211119124621994.png)
+
+找到对应类的继承体系与说明：
+
+[MPlug](https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_plug_html):创建和访问依存节点的接口。他就是我们访问属性的类型。
+
+[MFnTransform](https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_fn_transform_html)：与MFnLight同父亲，都是MFnDageNode节点的子节点。
+
+[**MFnDependencyNode**](https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=Maya_SDK_cpp_ref_class_m_fn_dependency_node_html)：MFnDageNode节点的父亲。也就难怪为什么不能调用一些方法，儿子有的你没有啊！
+
+
+
+一般来说，我们只要找到对象对应的Transform节点或Shape节点，那么做任何变换都会十分简单，这就需要我们在命名上下点功夫：
+
+```python
+import pymel.core as pm
+#如果相对Cube进行变换，显然找Transform就可以了，命名统一加类型限定，可以快速帮助找到需要类型。
+#拉跨查找，找到的都是MFnDependencyNode
+cube1 = pm.ls(type = "polyCube")
+
+#找出所有前缀为qq的transform节点，直接就能进行变换
+cube2 = pm.ls("qq*",type = "transform")
+
+#找到shape也行，
+cube2 = pm.ls("qq*",type = "shape")
+```
+
+上面，我们介绍了MPlug是一个创建和访问DG节点的接口，也是PyMEL中pyNodes节点属性底层对应的“万能类”。所有Attribute都用MPlug包装，而MPlug自带了很多方法来set或者get内含属性。所以在pyMEL中，只需要知道节点的属性，就能通过MPlug包装的优势，直接获得需要的信息。使用方法如下：
+
+```python
+import pymel.core as pm
+
+cube = pm.ls(type = 'polyCube')[0]
+print(type(cube))
+cube.height.set(5)
+```
+
+
+
+
+
+
+
+
+
+
+
+### 另外
+
+需要注意的是，虽然PyNodes继承自[`ProxyUnicode`](https://help.autodesk.com/cloudhelp/2022/CHS/Maya-Tech-Docs/PyMel/generated/classes/pymel.util.utilitytypes/pymel.util.utilitytypes.ProxyUnicode.html#pymel.util.utilitytypes.ProxyUnicode)类，但PyNodes不是字符串。方法需要一个string时，我们不能传入一个PyNodes对象，而需要进行必要的转化：
+
+```python
+pyNodesInstanceList = pm.ls(type = 'object type') 
+#使用str()方法对单个对象进行转化
+#str(pyNodesInstanceList[0])
+#使用str()方法对多个对象进行转化
+stringList = [str(pyn) for pyn in pyNodesInstanceList ]
+```
+
+同样的，当需要删除一个对象时，在PyMEL下就要使用对应的PyNodes删除方法pm.delete(PyNodes),如果我们只有str名字，那么就需要利用pm.PyNode(str)转化为PyNodes对象。
+
+```python
+try:
+    if isinstance(name,str):
+        pyInstance = pm.PyNode(str)
+except:
+   	pass
+
+pm.delete(pyInstance.getTransform())
+```
+
+知道这些后接下来事情就会变得very Interesting了。下面的👇网址十分重要，我们将不断地对它进行查询：
+
+https://help.autodesk.com/view/MAYAUL/2022/CHS/?guid=__PyMel_tutorial_html
+
+
+
+
+
+
+
+常用方法：
+
+节点重命名
+
+```python
+import pymel.core as pm
+orig = pm.polyCube(name='myCube')[0]
+orig.rename('crazyCube')  #使用PyMEL改名，可以直接在底层对属性进行						   #更改       
+```
+
+格式化为字符串
+
+```python
+# %s将格式化为字符串
+# %d将整型保留格式化
+# #f将浮点型保留格式化
+```
+
+为对象打组/获得组内对象的信息
+
+```python
+import pymel.core as pm
+sphere1, hist1 = pm.polySphere(name='mySphere')
+sphere2, hist2 = pm.polySphere(name='mySphere')
+grp1 = pm.group(sphere1) #分到新组
+grp2 = pm.group(sphere2) #分到新组
+sphereGet = grp2.getChildren()[0] #获得grp2组的第一个对象
+print(sphereGet.shortName())#获取mySphere1短名字
+print(sphereGet.nodeName())
+print(sphereGet.longName()) #获取|group2|mySphere1 完整dag路径
+
+```
+
+获取对象实例/其它实例
+
+```python
+sphere1.getInstances()
+
+[Transform(u'group1|mySphere'), Transform(u'group2|mySphere')]
+
+sphere1.getOtherInstances()
+    
+[Transform(u'group2|mySphere')]
+```
+
+使用PyNodes作为字典Keys进行名字映射
+
+```python
+import pymel.core as pm
+AllObjects = {}  # node-to-name dictionary
+def store():
+    for obj in pm.ls(type ='light'):
+        AllObjects[obj] = obj.name()
+
+def diff():
+    AllObjsCopy = AllObjects.copy()
+    for obj in pm.ls(type ='light'):
+        try:
+            oldName = AllObjsCopy.pop(obj)
+            newName = obj.name()
+            if newName != oldName:
+                print ("renamed: %s ---> %s" % (oldName, newName))
+                AllObjects[obj] =  newName
+        except KeyError:
+           print ("new: %s" % obj.name())
+           AllObjects[obj] =  obj.name()
+    for obj, name in AllObjsCopy.items():
+        print ("deleted:", name)
+        del AllObjects[obj]
+        
+def run():
+        store()
+        diff()
+        
+        for obj, name in AllObjects.items():
+            print ("obj%s name%s"%(obj,name))
+            print(type(obj))
+            print(type(name))
+           
+run()
+pm.delete(pm.PyNode('areaLightShape1').getTransform())
+diff()
+for obj, name in AllObjects.items():
+            print ("obj%s name%s"%(obj,name))
+           
+```
+
+
+
+## 简单实现灯光位置转换
+
+```python
+import pymel.core as pm
+#获取某个灯光的pyNodes实例
+lightInstance = pm.ls(type = 'light')[0]
+
+#通过pyNodes
+
+transformation = lightInstance.getTransform().getTransformation()
+
+vl = pm.shadingNode('volumeLight',asLight = True)
+vl.getTransform().setTransformation(transformation)
+print(vl.getTransform().getTransformation())
+```
+
+
+
+## 保存-读取
+
+
+
+
+
+
+
+
+
+# PySide2参考
+
+## Pyside2布局管理
+
+
+
+框布局Boxlayout
+
+框布局有两种QHBoxLayout和QVBoxLayout。故名思意就是将控件水平和垂直布局。
+
+表格布局QGridLayout
+
+表格布局将空间划分为row和column。一个控件可占多个表格。
+
+### 空格编辑行QLineEdit
+
+### 按键按钮QPushButton
+
+
+
+下拉按钮QComboBox
+
+滑动条
+
+弹窗
+
+https://jingyan.baidu.com/article/f79b7cb38e3091d144023eca.html
+
+## 事件与插槽
